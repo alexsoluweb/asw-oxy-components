@@ -4,6 +4,6 @@
 
 2. To output the translation file go to the admin area: ```tools/Translate Oxygen```
 
-3. You can then use loco-translate or your favorite gettext translator to translate those strings. It is compatible with Polylang/wpml and similar multilangual plugin.
+3. You can then use loco-translate or your favorite gettext translator to translate those gettext strings from that file. It is compatible with Polylang/WPML and similar multilangual plugin.
 
 # Enjoy!
