@@ -3,6 +3,7 @@
 namespace asw\oxygen;
 
 use asw\oxygen\elements\I18N_Text;
+use WP_Error;
 
 class Oxygen {
 
@@ -50,8 +51,12 @@ class Oxygen {
 
 		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : false;
 		if ( $nonce !== false && wp_verify_nonce( $nonce, 'translate-oxygen' ) !== false ) {
-			$this->translate_all_templates();
-			echo '<h3 class="success-msg">Done translations with success!</h3>';
+			$result = $this->translate_all_templates();
+			if ( $result === true ) {
+				echo '<h3 class="success-msg">Done translations with success!</h3>';
+			} else {
+				echo '<h3 class="err-msg">' . esc_html( $result ) . '</h3>';
+			}
 		} else {
 			echo "<form method='POST' style='padding:40px'>";
 			wp_nonce_field(
@@ -67,6 +72,11 @@ class Oxygen {
 				background-color: white;
 				padding: 20px;
 				border-left: 4px solid #68de7c;
+			}
+			.err-msg{
+				background-color: white;
+				padding: 20px;
+				border-left: 4px solid red;
 			}
 		</style>';
 	}
@@ -93,10 +103,12 @@ class Oxygen {
 		self::$translations_buffer = array_unique( self::$translations_buffer );
 
 		// Write translations to file
-		$this->write_translations_to_file();
+		$res = $this->write_translations_to_file();
 
 		// Free the memory
 		self::$translations_buffer = array();
+
+		return $res;
 	}
 
 	// Put all translatable strings into the buffer
@@ -146,12 +158,17 @@ class Oxygen {
 		$language_path = apply_filters( 'asw_oxygen_language_path', self::$language_path );
 
 		// Create translation file ... if not exist
-		if ( ! file_exists( self::$language_path . 'oxy-translation.php' ) ) {
-			touch( self::$language_path . 'oxy-translation.php' );
-			chmod( self::$language_path . 'oxy-translation.php', 664 );
+		if ( ! file_exists( $language_path . 'oxy-translation.php' ) ) {
+			if ( ! touch( $language_path . 'oxy-translation.php' ) || ! chmod( $language_path . 'oxy-translation.php', 664 ) ) {
+				return "Could not write the translation file to $language_path. Verify that this path has a write access!";
+			}
 		}
 
-		file_put_contents( $language_path . 'oxy-translation.php', '<?php' . PHP_EOL . $output );
+		if ( ! file_put_contents( $language_path . 'oxy-translation.php', '<?php' . PHP_EOL . $output ) ) {
+			return "Could not write the translation file to $language_path/oxy-translation.php. Verify that this file has a write access!";
+		}
+
+		return true;
 	}
 
 	// Helper: Check if we are rendering a component inside the builder
